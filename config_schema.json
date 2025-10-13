@@ -4,7 +4,7 @@
   "properties": {
     "enabled": {
       "type": "boolean",
-      "default": true,
+      "default": false,
       "description": "Enable or disable the music plugin"
     },
     "preferred_source": {
@@ -14,8 +14,8 @@
       "description": "Preferred music source (spotify or ytm - YouTube Music)"
     },
     "POLLING_INTERVAL_SECONDS": {
-      "type": "number",
-      "default": 2,
+      "type": "integer",
+      "default": 1,
       "minimum": 1,
       "maximum": 10,
       "description": "Polling interval in seconds for checking playback status"
