@@ -1,7 +1,7 @@
 {
   "id": "music",
   "name": "Music Now Playing",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": "ChuckBuilds",
   "description": "Display now playing music from Spotify or YouTube Music with album art, track info, and smooth scrolling. Shows current song, artist, album, and playback status.",
   "homepage": "https://github.com/ChuckBuilds/ledmatrix-plugins",
