@@ -20,25 +20,25 @@ class YTMClient:
     
     def __init__(self, base_url=None, update_callback=None):
         """
-        Initialize YTM client.
-        
+        Initialize YTM client with callback.
+
         Args:
-            base_url: YTM Companion server URL (from config or environment)
-            update_callback: Optional callback for state updates
+            base_url: YTM Companion server URL
+            update_callback: Callback function for state updates
         """
-        self.base_url = base_url or os.environ.get('YTM_COMPANION_URL', 'http://localhost:9863')
+        self.base_url = base_url or 'http://localhost:9863'
         self.ytm_token = None
         self._load_token()
-        
+
         self.sio = socketio.Client(
-            logger=False, 
+            logger=False,
             engineio_logger=False,
             reconnection=True,
             reconnection_attempts=0,  # Infinite attempts
             reconnection_delay=1,
             reconnection_delay_max=10
         )
-        
+
         self.last_known_track_data = None
         self.is_connected = False
         self._data_lock = threading.Lock()
@@ -55,19 +55,19 @@ class YTMClient:
         # Setup Socket.IO event handlers
         @self.sio.event(namespace='/api/v1/realtime')
         def connect():
-            logging.info(f"Connected to YTM Companion at {self.base_url}")
+            logging.info("Connected to YTM Companion at %s", self.base_url)
             self.is_connected = True
             self._connection_event.set()
 
         @self.sio.event(namespace='/api/v1/realtime')
         def connect_error(data):
-            logging.error(f"YTM connection failed: {data}")
+            logging.error("YTM connection failed: %s", data)
             self.is_connected = False
             self._connection_event.set()
 
         @self.sio.event(namespace='/api/v1/realtime')
         def disconnect():
-            logging.info(f"Disconnected from YTM Companion")
+            logging.info("Disconnected from YTM Companion")
             self.is_connected = False
 
         @self.sio.on('state-update', namespace='/api/v1/realtime')
@@ -87,18 +87,18 @@ class YTMClient:
         
         if os.path.exists(YTM_AUTH_CONFIG_PATH):
             try:
-                with open(YTM_AUTH_CONFIG_PATH, 'r') as f:
+                with open(YTM_AUTH_CONFIG_PATH, 'r', encoding='utf-8') as f:
                     auth_data = json.load(f)
                     self.ytm_token = auth_data.get("YTM_COMPANION_TOKEN")
-                
+
                 if self.ytm_token:
-                    logging.info(f"YTM token loaded from {YTM_AUTH_CONFIG_PATH}")
+                    logging.info("YTM token loaded from %s", YTM_AUTH_CONFIG_PATH)
                 else:
-                    logging.warning(f"YTM token not found in {YTM_AUTH_CONFIG_PATH}")
+                    logging.warning("YTM token not found in %s", YTM_AUTH_CONFIG_PATH)
             except Exception as e:
-                logging.error(f"Error loading YTM token: {e}")
+                logging.error("Error loading YTM token: %s", e)
         else:
-            logging.warning(f"YTM auth file not found at {YTM_AUTH_CONFIG_PATH}")
+            logging.warning("YTM auth file not found at %s", YTM_AUTH_CONFIG_PATH)
             logging.warning("Run authenticate_ytm.py in the plugin directory to generate it.")
 
     def connect_client(self, timeout=10):

@@ -1,7 +1,6 @@
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 import logging
-import json
 import os
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -18,19 +17,19 @@ class SpotifyClient:
     
     def __init__(self, client_id=None, client_secret=None, redirect_uri=None):
         """
-        Initialize Spotify client.
-        
+        Initialize Spotify client with credentials.
+
         Args:
-            client_id: Spotify Client ID (from environment or config)
-            client_secret: Spotify Client Secret (from environment or config)
-            redirect_uri: Spotify Redirect URI (from environment or config)
+            client_id: Spotify Client ID
+            client_secret: Spotify Client Secret
+            redirect_uri: Spotify Redirect URI
         """
-        self.client_id = client_id or os.environ.get('SPOTIFY_CLIENT_ID')
-        self.client_secret = client_secret or os.environ.get('SPOTIFY_CLIENT_SECRET')
-        self.redirect_uri = redirect_uri or os.environ.get('SPOTIFY_REDIRECT_URI')
+        self.client_id = client_id
+        self.client_secret = client_secret
+        self.redirect_uri = redirect_uri or 'http://localhost:8888/callback'
         self.scope = "user-read-currently-playing user-read-playback-state"
         self.sp = None
-        
+
         if self.client_id and self.client_secret and self.redirect_uri:
             self._authenticate()
         else:
@@ -42,12 +41,12 @@ class SpotifyClient:
             logging.warning("Cannot authenticate Spotify: credentials missing.")
             return
 
-        logging.info(f"SpotifyClient using cache path: {SPOTIFY_AUTH_CACHE_PATH}")
-        
+        logging.info("SpotifyClient using cache path: %s", SPOTIFY_AUTH_CACHE_PATH)
+
         if os.path.exists(SPOTIFY_AUTH_CACHE_PATH):
-            logging.info(f"Cache file exists at {SPOTIFY_AUTH_CACHE_PATH}")
+            logging.info("Cache file exists at %s", SPOTIFY_AUTH_CACHE_PATH)
         else:
-            logging.warning(f"Cache file does not exist at {SPOTIFY_AUTH_CACHE_PATH}")
+            logging.warning("Cache file does not exist at %s", SPOTIFY_AUTH_CACHE_PATH)
             logging.warning("Run authenticate_spotify.py in the plugin directory to generate it.")
 
         try:
@@ -65,7 +64,7 @@ class SpotifyClient:
             self.sp.current_user()
             logging.info("Spotify client initialized and authenticated using cached token.")
         except Exception as e:
-            logging.warning(f"Spotify authentication failed: {e}")
+            logging.warning("Spotify authentication failed: %s", e)
             logging.warning("Run authenticate_spotify.py in the plugin directory if needed.")
             self.sp = None
 
@@ -81,14 +80,14 @@ class SpotifyClient:
         try:
             return self.sp.current_playback()
         except spotipy.exceptions.SpotifyException as e:
-            logging.error(f"Spotify API error: {e}")
+            logging.error("Spotify API error: %s", e)
             if e.http_status in (401, 403):
                 logging.warning("Spotify token may be expired or revoked.")
                 logging.warning("Please re-run authenticate_spotify.py in the plugin directory.")
                 self.sp = None
             return None
         except Exception as e:
-            logging.error(f"Unexpected error fetching Spotify playback: {e}")
+            logging.error("Unexpected error fetching Spotify playback: %s", e)
             return None
 
     def get_current_track(self):

@@ -1,9 +1,9 @@
 {
   "id": "music",
-  "name": "Music Now Playing",
-  "version": "1.0.1",
+  "name": "Music Now Playing (Original Recreation)",
+  "version": "1.0.2",
   "author": "ChuckBuilds",
-  "description": "Display now playing music from Spotify or YouTube Music with album art, track info, and smooth scrolling. Shows current song, artist, album, and playback status.",
+  "description": "Perfect replica of the original LEDMatrix MusicManager with identical visual appearance, functionality, and behavior. Displays currently playing music from Spotify or YouTube Music with album art, track info, and sophisticated scrolling.",
   "category": "media",
   "tags": [
     "music",
