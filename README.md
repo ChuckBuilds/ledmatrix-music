@@ -1,472 +1,325 @@
-# Music Now Playing Plugin
+# Music Player Plugin
 
-**Perfect replica of the original LEDMatrix MusicManager** with identical visual appearance, functionality, and behavior.
+A plugin for LEDMatrix that displays real-time now playing information from Spotify and YouTube Music with album art, scrolling text, and progress bars.
 
-This plugin displays currently playing music from Spotify or YouTube Music with album art, track information, and sophisticated scrolling - exactly as in the original LEDMatrix system.
+## Features
 
-## 🎵 Features
+- **Dual Music Sources**: Support for both Spotify and YouTube Music
+- **Real-time Updates**: Live track information with automatic refresh
+- **Album Art Display**: High-quality album artwork with automatic resizing and enhancement
+- **Scrolling Text**: Smooth scrolling for long track titles, artists, and album names
+- **Progress Bar**: Visual progress indicator showing playback position
+- **Source Switching**: Automatic detection and switching between music sources
+- **Authentication Support**: Built-in OAuth2 for Spotify and token-based auth for YTM
+- **Background Polling**: Non-blocking data fetching with configurable intervals
+- **Error Handling**: Graceful fallback to "Nothing Playing" state
+- **Thread Safety**: Thread-safe operations for concurrent access
+- **Display Modes**: Dedicated "now_playing" display mode
+- **Configuration**: Flattened config structure for easy plugin management
 
-### Visual Layout (Identical to Original)
-- **Album art on left half**: Full-height album artwork display with enhanced contrast and saturation
-- **Text on right half**: Title, artist, and album with precise positioning
-- **Progress bar**: Real-time playback progress at the bottom
-- **Exact fonts**: Uses display manager's small_font and bdf_5x7_font for authentic appearance
-- **Perfect colors**: White for titles, dim white for artists, dimmer for albums
+## Configuration
 
-### Advanced Scrolling System
-- **Independent scrolling**: Title, artist, and album scroll separately with different timing
-- **Sophisticated logic**: Text scrolls only when needed, with proper wraparound
-- **Configurable speed**: Adjustable scroll divisor for fine-tuning
-- **Smooth animation**: Frame-by-frame scrolling with tick-based updates
+### Plugin Settings
 
-### State Management (Thread-Safe)
-- **Threading locks**: All track info access protected with locks
-- **Event-driven updates**: YTM real-time updates via Socket.IO events
-- **Polling system**: Background polling with configurable intervals
-- **Connection management**: Automatic YTM reconnection and state synchronization
-
-### Music Sources
-- **Spotify Integration**: Full OAuth authentication with local token caching
-- **YouTube Music Integration**: Real-time Socket.IO connection with companion server
-- **Source switching**: Seamless switching between music sources
-- **Authentication**: Plugin-local auth files for easy setup
-
-## 🚀 Installation & Setup
-
-### 1. Plugin Installation
-
-The plugin should be installed in your LEDMatrix `plugins/` directory:
-
-```
-LEDMatrix/
-├── plugins/
-│   └── music/          # This plugin
-│       ├── manager.py
-│       ├── spotify_client.py
-│       ├── ytm_client.py
-│       ├── manifest.json
-│       ├── config_schema.json
-│       └── authenticate_*.py
-```
-
-### 2. Configuration
-
-Add the music plugin to your LEDMatrix configuration:
+Add to your `config/config.json`:
 
 ```json
 {
-  "music": {
+  "ledmatrix-music": {
     "enabled": true,
-    "POLLING_INTERVAL_SECONDS": 2,
+    "display_duration": 30,
     "preferred_source": "spotify",
-    "YTM_COMPANION_URL": "http://localhost:9863",
-    "show_album_art": true,
-    "show_progress_bar": true,
-    "show_album_name": true,
-    "text_scroll_speed": 5,
-    "max_album_art_size": 32
-  },
-  "spotify": {
-    "SPOTIFY_CLIENT_ID": "your_client_id",
-    "SPOTIFY_CLIENT_SECRET": "your_client_secret",
-    "SPOTIFY_REDIRECT_URI": "http://localhost:8888/callback"
+    "polling_interval_seconds": 2,
+    "ytm_companion_url": "http://localhost:9863"
   }
 }
 ```
 
-### 3. Authentication Setup
+### Configuration Options
 
-#### For Spotify
-1. Get API credentials from [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
-2. Run the authentication script:
-   ```bash
-   cd plugins/music
-   python authenticate_spotify.py
-   ```
-3. Follow the browser authentication flow
-4. Token is cached in `spotify_auth.json`
+| Setting | Type | Default | Description |
+|---------|------|---------|-------------|
+| `enabled` | boolean | true | Enable or disable the music plugin |
+| `display_duration` | number | 30 | How long to show the music display (10-300 seconds) |
+| `preferred_source` | string | "spotify" | Preferred music source ("spotify" or "ytm") |
+| `polling_interval_seconds` | number | 2 | Polling interval for Spotify in seconds (1-60) |
+| `ytm_companion_url` | string | "http://localhost:9863" | YouTube Music Companion server URL |
 
-#### For YouTube Music
-1. Install and configure [WebNowPlaying-Redux companion](https://github.com/keifufu/WebNowPlaying-Redux)
-2. Generate authentication token:
-   ```bash
-   cd plugins/music
-   python authenticate_ytm.py
-   ```
-3. Token is stored in `ytm_auth.json`
+## Authentication Setup
 
-## ⚙️ Configuration Options
+### Spotify Authentication
 
-### Core Settings
-- `music.enabled`: Enable/disable music display
-- `music.preferred_source`: Music source (`spotify` or `ytm`)
-- `music.POLLING_INTERVAL_SECONDS`: Update frequency (1-30 seconds)
-- `music.YTM_COMPANION_URL`: YouTube Music companion server URL
+1. **Create Spotify App**:
+   - Go to [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
+   - Create a new app
+   - Note your Client ID and Client Secret
+   - Set Redirect URI to `http://localhost:8080/callback` (or your preferred URL)
 
-### Visual Settings
-- `music.show_album_art`: Display album artwork (default: true)
-- `music.show_progress_bar`: Show playback progress (default: true)
-- `music.show_album_name`: Display album name (default: true)
-- `music.text_scroll_speed`: Scrolling speed (1-20, lower = faster)
-- `music.max_album_art_size`: Maximum artwork size (16-64px)
-### Display Settings
-- `display_duration`: How long to display music (1-300 seconds)
-- `update_interval`: Update frequency for plugin manager (1-30 seconds)
-
-## 🎨 Visual Layout
-
-The plugin displays music information with the exact same layout as the original MusicManager:
-
-```
-┌─────────────────┐ ┌─────────────────────────────────────┐
-│                 │ │ SONG TITLE (White)                  │
-│     ALBUM       │ │                                     │
-│     ARTWORK     │ │ Artist Name (Dim White)             │
-│                 │ │                                     │
-│   (Enhanced &   │ │ Album Name (Dimmest)                │
-│   Resized)      │ │                                     │
-│                 │ └─────────────────────────────────────┘
-│                 │ ┌─────────────────────────────────────┐
-│                 │ │█░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░│
-│                 │ │    (Progress Bar)                   │
-└─────────────────┘ └─────────────────────────────────────┘
-```
-
-### Features:
-- **Album art fills left half**: Automatically resized and enhanced with contrast/saturation
-- **Three text lines**: Title, artist, album with independent scrolling
-- **Progress visualization**: Real-time playback progress bar
-- **Responsive layout**: Adapts to any display size while maintaining proportions
-
-## 🔧 Technical Details
-
-### Threading & State Management
-- **Thread-safe operations**: All track info access protected with locks
-- **Event-driven updates**: YTM real-time updates via Socket.IO queue
-- **Polling system**: Background updates with configurable intervals
-- **Connection management**: Automatic reconnection and state sync
-
-### Image Processing
-- **Smart caching**: Album art cached and reused to avoid redundant downloads
-- **Image enhancement**: Contrast and saturation adjustments for LED visibility
-- **Format conversion**: RGB conversion for matrix compatibility
-- **Error handling**: Graceful fallbacks when images fail to load
-
-### Scrolling System
-- **Independent scrolling**: Each text field scrolls separately
-- **Width detection**: Only scrolls when text exceeds available space
-- **Smooth animation**: Frame-by-frame updates with configurable speed
-- **Wraparound logic**: Seamless continuous scrolling with proper spacing
-
-## 🎯 Perfect Replica Features
-
-This plugin is a **100% faithful recreation** of the original LEDMatrix MusicManager:
-
-### ✅ Identical Visual Appearance
-- **Exact layout**: Album art fills left half, text on right half
-- **Same fonts**: Uses display manager's `small_font` and `bdf_5x7_font`
-- **Perfect colors**: White titles, dim white artists, dimmer albums
-- **Progress bar**: Real-time playback progress at bottom
-- **Responsive design**: Adapts to any display size
-
-### ✅ Sophisticated State Management
-- **Threading locks**: All operations are thread-safe
-- **Event queues**: YTM real-time updates with proper queuing
-- **Polling system**: Background updates with exact timing
-- **Connection management**: Automatic reconnection and sync
-
-### ✅ Advanced Display Logic
-- **Force refresh**: Event-driven display updates
-- **Nothing Playing state**: Proper handling when no music plays
-- **Album art caching**: Smart caching with invalidation
-- **Image processing**: Enhanced contrast and saturation
-
-## 🚀 Quick Setup
-
-### Spotify (Recommended)
-```bash
-cd plugins/music
-python authenticate_spotify.py
-```
-
-### YouTube Music
-```bash
-cd plugins/music
-python authenticate_ytm.py
-```
-
-### Configuration
-```json
-{
-  "music": {
-    "enabled": true,
-    "preferred_source": "spotify",
-    "POLLING_INTERVAL_SECONDS": 2
-  }
-}
-```
-
-### YouTube Music Setup
-
-1. **Install Companion App**:
-   - Download and install the YTM Companion desktop app
-   - Or use WebNowPlaying-Redux with browser extension
-   - Start the companion server (default port: 9863)
-
-2. **Authenticate**:
-   ```bash
-   cd plugins/music
-   python authenticate_ytm.py
-   ```
-   
-   Follow the prompts:
-   - Enter your YTM Companion URL (or press Enter for `http://localhost:9863`)
-   - When prompted, approve the authentication request in your YTM Desktop App
-   - You have 30 seconds to approve
-   
-   This will create `ytm_auth.json` in the plugin directory.
-
-3. **Configure URL**:
+2. **Configure Credentials**:
+   Add to `config/config_secrets.json`:
    ```json
    {
      "music": {
-       "enabled": true,
-       "preferred_source": "ytm",
-       "YTM_COMPANION_URL": "http://YOUR_PC_IP:9863"
+       "SPOTIFY_CLIENT_ID": "your_client_id_here",
+       "SPOTIFY_CLIENT_SECRET": "your_client_secret_here",
+       "SPOTIFY_REDIRECT_URI": "http://localhost:8080/callback"
      }
    }
    ```
 
-4. **Start Companion**:
-   - Ensure companion server is running
-   - Play music in YouTube Music
-   - Plugin will auto-detect playback
+3. **Run Authentication**:
+   ```bash
+   cd plugins/ledmatrix-music
+   python3 authenticate_spotify.py
+   ```
+   - Follow the prompts to authorize in your browser
+   - Copy the redirected URL back to the script
+   - Token will be saved to `config/spotify_auth.json`
 
-## Display Layout
+### YouTube Music Authentication
 
-### With Album Art (64x32 display)
+1. **Install YTM Desktop App**:
+   - Download from [YTM Desktop](https://github.com/ytmdesktop/ytmdesktop)
+   - Install and run the application
+   - Enable the Companion Server in settings
+
+2. **Configure YTM URL**:
+   Update your config if using a different port:
+   ```json
+   {
+     "ledmatrix-music": {
+       "ytm_companion_url": "http://localhost:9863"
+     }
+   }
+   ```
+
+3. **Run Authentication**:
+   ```bash
+   cd plugins/ledmatrix-music
+   python3 authenticate_ytm.py
+   ```
+   - The script will request an auth code
+   - Approve the request in YTM Desktop App within 30 seconds
+   - Token will be saved to `config/ytm_auth.json`
+
+## Display Format
+
+The music display shows:
+
+- **Album Art**: Square album artwork on the left side
+- **Track Title**: Scrolling white text at the top
+- **Artist**: Scrolling gray text in the middle
+- **Album**: Scrolling light gray text below artist
+- **Progress Bar**: White progress bar at the bottom
+- **Nothing Playing**: Centered message when no music is detected
+
+### Layout Structure
+
 ```
-┌──────┬────────────────────┐
-│      │ Now Playing Title  │
-│ Art  │ Artist Name        │
-│      │ Album Name         │
-└──────┴────────────────────┘
+┌─────────────────────────────────┐
+│ [Album Art] Track Title         │
+│           Artist Name           │
+│           Album Name            │
+│           ████████░░░░          │
+└─────────────────────────────────┘
 ```
 
-### Without Album Art
-```
-┌────────────────────────────┐
-│     Now Playing Title      │
-│       Artist Name          │
-│       Album Name           │
-└────────────────────────────┘
-```
+## Music Sources
 
-## Usage Tips
+### Spotify
+- **API**: Spotify Web API
+- **Authentication**: OAuth2 with refresh tokens
+- **Data**: Track name, artist, album, artwork, progress, duration
+- **Polling**: Configurable interval (default 2 seconds)
+- **Features**: Real-time playback state, album art, progress tracking
 
-### Scrolling Text
+### YouTube Music
+- **API**: YTM Desktop Companion Server
+- **Authentication**: Token-based with YTM Desktop App
+- **Data**: Track name, artist, album, artwork, progress, duration
+- **Updates**: Real-time via Socket.IO events
+- **Features**: Live updates, ad detection, playback state
 
-For long titles that don't fit:
-- Enable `scroll_long_text`
-- Adjust `scroll_speed` for readability
-- Slow speeds (1-2) are more readable
-- Fast speeds (5-10) for quick info
+## Display Modes
 
-### Album Artwork
+### Now Playing Mode
+- **Mode Name**: `now_playing`
+- **Description**: Real-time music information display
+- **Features**: Album art, scrolling text, progress bar
+- **Duration**: Configurable (10-300 seconds)
 
-- Automatically downloads and caches album art
-- Resized to fit display
-- Slightly dimmed for better text visibility
-- Cached per album to reduce network requests
+## Technical Details
 
-### Polling Interval
+### Threading
+- **Polling Thread**: Background thread for Spotify polling
+- **Socket.IO Thread**: Real-time updates from YTM
+- **Display Thread**: Main display rendering
+- **Thread Safety**: All shared data protected with locks
 
-- 1-2 seconds: Very responsive, more CPU usage
-- 3-5 seconds: Balanced, recommended
-- 5-10 seconds: Less responsive, lower resource use
+### Image Processing
+- **Album Art**: Automatic download and resizing
+- **Enhancement**: Contrast and saturation boost for LED matrix
+- **Caching**: Images cached to avoid repeated downloads
+- **Fallback**: Placeholder rectangle when no artwork available
+
+### Scrolling Logic
+- **Text Scrolling**: Smooth character-by-character scrolling
+- **Wrap Around**: Continuous scrolling with separator
+- **Speed Control**: Configurable scroll speed and timing
+- **Multi-line**: Independent scrolling for title, artist, and album
+
+### Error Handling
+- **Network Errors**: Graceful fallback to cached data
+- **Authentication Errors**: Clear error messages and guidance
+- **API Errors**: Automatic retry with exponential backoff
+- **Display Errors**: Fallback to "Nothing Playing" state
 
 ## Troubleshooting
 
-**Nothing displayed:**
-- Check that music is actually playing
-- Verify preferred_source matches your setup
-- Check authentication for Spotify
-- Verify companion server URL for YTM
+### No Music Display
+1. Check if plugin is enabled in config
+2. Verify preferred source is set correctly
+3. Check authentication status
+4. Review plugin logs for errors
 
-**Spotify not working:**
-- Re-run `authenticate_spotify.py` in the plugin directory
-- Check that environment variables or config contains valid credentials
-- Verify Spotify Premium subscription
-- Check that `spotify_auth.json` exists in the plugin directory
-- Ensure redirect URI in Spotify dashboard matches your configuration
+### Spotify Issues
+1. Verify credentials in `config_secrets.json`
+2. Run `authenticate_spotify.py` to refresh token
+3. Check Spotify app is playing music
+4. Verify internet connection
 
-**YTM not working:**
-- Re-run `authenticate_ytm.py` in the plugin directory
-- Verify companion server is running
-- Check that `ytm_auth.json` exists in the plugin directory
-- Check companion URL is correct in config
-- Ensure firewall allows connection
-- Try opening companion URL in browser (e.g., `http://localhost:9863`)
+### YouTube Music Issues
+1. Ensure YTM Desktop App is running
+2. Check Companion Server is enabled
+3. Run `authenticate_ytm.py` to refresh token
+4. Verify YTM is playing music
 
-**Album art not showing:**
-- Check internet connection
-- Verify `show_album_art` is true
-- Some tracks may not have artwork
-- Check for image loading errors in logs
+### Authentication Problems
+1. Check file permissions on config directory
+2. Verify credentials are correct
+3. Ensure redirect URI matches Spotify app settings
+4. Check YTM Desktop App is running during auth
 
-**Text scrolling too fast/slow:**
-- Adjust `scroll_speed` value
-- Try values 1-3 for readability
-- Values above 5 may be hard to read
+### Display Issues
+1. Check album art URLs are accessible
+2. Verify font files are available
+3. Check matrix dimensions and layout
+4. Review scrolling configuration
 
-**Lagging/stuttering:**
-- Increase `POLLING_INTERVAL_SECONDS`
-- Disable album art if not needed
-- Check network latency
+### Performance Issues
+1. Adjust polling interval
+2. Check system resources
+3. Monitor network connectivity
+4. Review error logs
 
 ## Advanced Configuration
 
-### Custom Styling
+### Custom Fonts
+The plugin uses LEDMatrix's font system:
+- **Title Font**: `small_font` (TTF)
+- **Artist/Album Font**: `bdf_5x7_font` (BDF)
 
-Modify the display appearance by adjusting font sizes and colors in the code:
+### Color Customization
+Colors are hardcoded for optimal LED matrix display:
+- **Title**: White (255, 255, 255)
+- **Artist**: Light Gray (180, 180, 180)
+- **Album**: Gray (150, 150, 150)
+- **Progress Bar**: White (200, 200, 200)
 
-```python
-# In manager.py
-title_font = ImageFont.truetype('path/to/font.ttf', 10)  # Larger title
-info_font = ImageFont.truetype('path/to/font.ttf', 8)   # Larger info
-```
+### Layout Customization
+Layout is optimized for LED matrix displays:
+- **Album Art Size**: Full height of display
+- **Text Area**: Remaining width after album art
+- **Positioning**: Percentage-based for different matrix sizes
 
-### Multiple Sources
+## API Integration
 
-While only one source is active at a time, you can quickly switch:
+### Spotify Web API
+- **Endpoint**: `https://api.spotify.com/v1/me/player/currently-playing`
+- **Authentication**: Bearer token with automatic refresh
+- **Rate Limiting**: Built-in delays between requests
+- **Data Format**: JSON with track, artist, album, and progress info
 
-```json
-{
-  "preferred_source": "spotify"  // or "ytm"
-}
-```
+### YTM Companion Server
+- **Protocol**: Socket.IO over WebSocket
+- **Authentication**: Token-based with app approval
+- **Real-time**: Live updates via event callbacks
+- **Data Format**: JSON with video, player, and progress info
 
-### Performance Tuning
+## Performance Features
 
-For lower-end devices:
-- Increase polling interval to 5+ seconds
-- Disable album art
-- Disable text scrolling
-- Use simpler fonts
+### Background Data Fetching
+- **Non-blocking**: API calls don't block display updates
+- **Caching**: Album art and track data cached locally
+- **Retry Logic**: Automatic retry on network errors
+- **Throttling**: Rate limiting to prevent API abuse
+
+### Memory Management
+- **Image Caching**: Album art cached with size limits
+- **Queue Management**: Bounded queues for event data
+- **Cleanup**: Proper resource cleanup on shutdown
+- **Garbage Collection**: Automatic cleanup of old data
+
+### Display Optimization
+- **Frame Rate**: Optimized for smooth scrolling
+- **Redraw Logic**: Only redraw when necessary
+- **State Management**: Efficient state tracking
+- **Error Recovery**: Graceful recovery from errors
 
 ## Integration Notes
 
-### Spotify Client
+This plugin is designed to work alongside other LEDMatrix plugins:
 
-Uses existing `SpotifyClient` from main LEDMatrix codebase:
-- Handles OAuth authentication
-- Manages token refresh
-- Provides playback API access
+- **Weather Plugin**: Rotate between weather and music
+- **News Plugin**: Show music during news breaks
+- **Sports Plugin**: Display music during sports intermissions
+- **Clock Plugin**: Show time and music information
 
-### YTM Client
+## Dependencies
 
-Uses existing `YTMClient` from main LEDMatrix codebase:
-- Connects to companion server
-- Receives real-time updates
-- Handles connection errors gracefully
+- **spotipy**: Spotify Web API client
+- **python-socketio[client]**: Socket.IO client for YTM
+- **requests**: HTTP library for API calls
+- **pillow**: Image processing for album art
+- **LEDMatrix**: Base plugin system and display management
 
-## Examples
+## Version History
 
-### Spotify Configuration
-```json
-{
-  "music": {
-    "enabled": true,
-    "preferred_source": "spotify",
-    "POLLING_INTERVAL_SECONDS": 2,
-    "show_album_art": true,
-    "scroll_long_text": true,
-    "scroll_speed": 2
-  }
-}
-```
+### v1.0.0
+- Initial plugin release
+- Migrated from `src/old_managers/music_manager.py`
+- Flattened configuration structure
+- Plugin system integration
+- Path resolution fixes for plugin location
+- Comprehensive documentation
 
-### YouTube Music Configuration
-```json
-{
-  "music": {
-    "enabled": true,
-    "preferred_source": "ytm",
-    "YTM_COMPANION_URL": "http://192.168.1.100:9863",
-    "POLLING_INTERVAL_SECONDS": 3,
-    "show_album_art": true,
-    "scroll_long_text": true,
-    "scroll_speed": 1
-  }
-}
-```
+## Support
 
-### Minimal Configuration (No Album Art)
-```json
-{
-  "music": {
-    "enabled": true,
-    "preferred_source": "ytm",
-    "YTM_COMPANION_URL": "http://localhost:9863",
-    "show_album_art": false,
-    "scroll_long_text": true
-  }
-}
-```
+For issues, feature requests, or questions:
 
-## Plugin Isolation and Security
-
-### Self-Contained Design
-
-This music plugin is fully self-contained. All authentication files are stored within the plugin directory:
-
-- `spotify_auth.json` - Spotify OAuth token
-- `ytm_auth.json` - YouTube Music Companion token
-- `authenticate_spotify.py` - Spotify authentication script
-- `authenticate_ytm.py` - YTM authentication script
-- `spotify_client.py` - Spotify API client
-- `ytm_client.py` - YTM API client
-
-### Security Notes
-
-**Important:** Authentication files contain sensitive tokens and should be protected:
-
-1. **.gitignore Protection**: The plugin includes a `.gitignore` file that prevents authentication files from being committed to git:
-   ```
-   spotify_auth.json
-   ytm_auth.json
-   ```
-
-2. **File Permissions**: Ensure authentication files have appropriate permissions:
-   ```bash
-   chmod 600 spotify_auth.json ytm_auth.json
-   ```
-
-3. **Clean Uninstall**: If you delete this plugin, all authentication data is removed with it. No traces are left in the main LEDMatrix configuration directory.
-
-4. **Environment Variables**: For added security, use environment variables for API credentials instead of storing them in the config file.
-
-### Data Storage Locations
-
-All music plugin data is stored in the plugin directory:
-
-```
-plugins/music/
-├── authenticate_spotify.py    # Spotify auth script
-├── authenticate_ytm.py         # YTM auth script
-├── spotify_client.py           # Spotify client
-├── ytm_client.py               # YTM client
-├── manager.py                  # Plugin main logic
-├── manifest.json               # Plugin metadata
-├── config_schema.json          # Configuration schema
-├── requirements.txt            # Dependencies
-├── README.md                   # This file
-├── .gitignore                  # Git ignore rules
-├── spotify_auth.json           # (created after Spotify auth)
-└── ytm_auth.json               # (created after YTM auth)
-```
+1. **Check Logs**: Review plugin logs for error messages
+2. **Verify Config**: Ensure configuration is correct
+3. **Test Authentication**: Run auth scripts to verify setup
+4. **Check Dependencies**: Ensure all required packages are installed
+5. **Review Documentation**: Check this README for troubleshooting steps
 
 ## License
 
-GPL-3.0 License - see main LEDMatrix repository for details.
+This plugin is licensed under the MIT License. See the LICENSE file for details.
 
+## Contributing
+
+Contributions are welcome! Please:
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
+
+## Acknowledgments
+
+- **Spotify**: For the excellent Web API
+- **YTM Desktop**: For the Companion Server
+- **LEDMatrix**: For the plugin system and display management
+- **Community**: For feedback and contributions

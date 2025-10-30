@@ -1,118 +1,52 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
+  "title": "Music Player Plugin Configuration",
+  "description": "Configuration schema for the music player plugin supporting Spotify and YouTube Music",
   "properties": {
     "enabled": {
       "type": "boolean",
-      "default": true,
-      "description": "Enable or disable this plugin"
-    },
-    "music": {
-      "type": "object",
-      "description": "Music player settings",
-      "properties": {
-        "enabled": {
-          "type": "boolean",
-          "default": false,
-          "description": "Enable music display"
-        },
-        "POLLING_INTERVAL_SECONDS": {
-          "type": "number",
-          "default": 2,
-          "minimum": 1,
-          "maximum": 30,
-          "description": "How often to poll for music updates (seconds)"
-        },
-        "preferred_source": {
-          "type": "string",
-          "enum": ["spotify", "ytm"],
-          "default": "spotify",
-          "description": "Preferred music source (spotify or ytm)"
-        },
-        "YTM_COMPANION_URL": {
-          "type": "string",
-          "default": "http://localhost:9863",
-          "description": "YouTube Music companion server URL"
-        },
-        "show_album_art": {
-          "type": "boolean",
-          "default": true,
-          "description": "Show album artwork"
-        },
-        "show_progress_bar": {
-          "type": "boolean",
-          "default": true,
-          "description": "Show playback progress bar"
-        },
-        "show_album_name": {
-          "type": "boolean",
-          "default": true,
-          "description": "Show album name"
-        },
-        "text_scroll_speed": {
-          "type": "number",
-          "default": 5,
-          "minimum": 1,
-          "maximum": 20,
-          "description": "Text scrolling speed (lower = faster)"
-        },
-        "max_album_art_size": {
-          "type": "number",
-          "default": 32,
-          "minimum": 16,
-          "maximum": 64,
-          "description": "Maximum size for album artwork"
-        }
-      },
-      "additionalProperties": false
-    },
-    "spotify": {
-      "type": "object",
-      "description": "Spotify configuration",
-      "properties": {
-        "SPOTIFY_CLIENT_ID": {
-          "type": "string",
-          "description": "Spotify API client ID"
-        },
-        "SPOTIFY_CLIENT_SECRET": {
-          "type": "string",
-          "description": "Spotify API client secret"
-        },
-        "SPOTIFY_REDIRECT_URI": {
-          "type": "string",
-          "default": "http://localhost:8888/callback",
-          "description": "Spotify OAuth redirect URI"
-        }
-      },
-      "additionalProperties": false
-    },
-    "youtube_music": {
-      "type": "object",
-      "description": "YouTube Music configuration",
-      "properties": {
-        "YTM_COMPANION_TOKEN": {
-          "type": "string",
-          "description": "YouTube Music companion authentication token"
-        }
-      },
-      "additionalProperties": false
+      "description": "Enable or disable the music player plugin",
+      "default": true
     },
     "display_duration": {
       "type": "number",
-      "default": 10,
-      "minimum": 1,
+      "description": "How long to show the music display (10-300 seconds)",
+      "minimum": 10,
       "maximum": 300,
-      "description": "How long to display music in seconds"
+      "default": 30
     },
-    "update_interval": {
-      "type": "integer",
-      "default": 2,
+    "preferred_source": {
+      "type": "string",
+      "description": "Preferred music source",
+      "enum": ["spotify", "ytm"],
+      "default": "spotify"
+    },
+    "polling_interval_seconds": {
+      "type": "number",
+      "description": "Polling interval for Spotify in seconds",
       "minimum": 1,
-      "maximum": 30,
-      "description": "How often to update music data in seconds"
+      "maximum": 60,
+      "default": 2
+    },
+    "ytm_companion_url": {
+      "type": "string",
+      "description": "YouTube Music Companion server URL",
+      "default": "http://localhost:9863",
+      "pattern": "^https?://.*"
+    },
+    "music_priority_mode": {
+      "type": "boolean",
+      "description": "Enable music priority mode - when music is playing, it takes over the display",
+      "default": false
+    },
+    "priority_duration_seconds": {
+      "type": "integer",
+      "description": "How long (in seconds) to show music when it starts playing in priority mode",
+      "minimum": 10,
+      "default": 30
     }
   },
-  "required": ["enabled"],
+  "required": ["enabled", "preferred_source"],
   "additionalProperties": false
 }
-
