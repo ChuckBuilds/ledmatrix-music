@@ -95,6 +95,9 @@ class MusicPlugin(BasePlugin):
         self.music_priority_active = False
         self.music_priority_start_time = 0
         self.last_music_activity_time = 0
+        # Timeout for persistent 'Nothing Playing' while in priority mode
+        self.nothing_playing_timeout_seconds = self.config.get("nothing_playing_timeout_seconds", 10)
+        self._nothing_playing_since_ts = None
         
         # Load configuration with flattened access
         self._load_config()
@@ -776,6 +779,20 @@ class MusicPlugin(BasePlugin):
                 self.logger.debug(f"Music Screen (MusicPlugin): Nothing playing. Context: {debug_ctx}")
                 self._last_nothing_playing_log_time = time.time()
 
+            # Track 'Nothing Playing' duration to allow early exit from priority mode
+            now_ts = time.time()
+            if self._nothing_playing_since_ts is None:
+                self._nothing_playing_since_ts = now_ts
+            if self.music_priority_mode and self.music_priority_active:
+                elapsed_np = now_ts - (self._nothing_playing_since_ts or now_ts)
+                if elapsed_np >= self.nothing_playing_timeout_seconds:
+                    self.logger.info("🎵 Nothing playing timeout reached - exiting music priority mode to resume rotation")
+                    self._deactivate_music_priority()
+                    self._nothing_playing_since_ts = None
+                    # Render once more to show cleared state, then return
+                    # (DisplayController will rotate modes)
+                    return
+
             if not self.is_currently_showing_nothing_playing or perform_full_refresh_this_cycle:
                 if perform_full_refresh_this_cycle or not self.is_currently_showing_nothing_playing:
                     self.display_manager.clear()
@@ -801,6 +818,8 @@ class MusicPlugin(BasePlugin):
             return
 
         self.is_currently_showing_nothing_playing = False 
+        # Reset NP timer when we have valid track info
+        self._nothing_playing_since_ts = None
 
         if perform_full_refresh_this_cycle: 
             title_being_displayed = current_track_info_snapshot.get('title','N/A') if current_track_info_snapshot else "N/A"

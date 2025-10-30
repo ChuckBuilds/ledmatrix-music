@@ -20,7 +20,9 @@
       "type": "string",
       "description": "Preferred music source",
       "enum": ["spotify", "ytm"],
-      "default": "spotify"
+      "default": "spotify",
+      "ui:widget": "radio",
+      "x-widget": "select"
     },
     "polling_interval_seconds": {
       "type": "number",
@@ -40,6 +42,12 @@
       "description": "Enable music priority mode - when music is playing, it takes over the display",
       "default": false
     },
+          "nothing_playing_timeout_seconds": {
+            "type": "integer",
+            "description": "When in priority mode, exit back to rotation if 'Nothing Playing' persists this long",
+            "minimum": 5,
+            "default": 10
+          },
     "priority_duration_seconds": {
       "type": "integer",
       "description": "How long (in seconds) to show music when it starts playing in priority mode",
