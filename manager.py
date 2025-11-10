@@ -78,6 +78,24 @@ class MusicPlugin(BasePlugin):
         self.track_log_interval = 5.0  # Log track updates every 5 seconds max
         self.artist_scroll_tick = 0
         self.album_scroll_tick = 0
+        
+        # Scroll configuration (will be loaded from config)
+        self.scroll_config = {
+            'title': {'enabled': True, 'speed': 5, 'separator': '   ', 'initial_pause_frames': 0, 'end_pause_frames': 0},
+            'artist': {'enabled': True, 'speed': 5, 'separator': '   ', 'initial_pause_frames': 0, 'end_pause_frames': 0},
+            'album': {'enabled': True, 'speed': 5, 'separator': '   ', 'initial_pause_frames': 0, 'end_pause_frames': 0}
+        }
+        
+        # Scroll state tracking for pause logic
+        self.title_initial_pause_counter = 0
+        self.title_end_pause_counter = 0
+        self.title_at_end = False
+        self.artist_initial_pause_counter = 0
+        self.artist_end_pause_counter = 0
+        self.artist_at_end = False
+        self.album_initial_pause_counter = 0
+        self.album_end_pause_counter = 0
+        self.album_at_end = False
         self.is_music_display_active = False
         self.is_currently_showing_nothing_playing = False
         self._needs_immediate_full_refresh = False
@@ -131,6 +149,19 @@ class MusicPlugin(BasePlugin):
                 self.logger.warning(f"Invalid 'preferred_source' ('{configured_source}') in config. Must be 'spotify' or 'ytm'. Music plugin disabled.")
                 self.enabled = False
                 return
+            
+            # Load scroll configuration
+            scroll_config_raw = self.config.get("text_scrolling", {})
+            for field in ['title', 'artist', 'album']:
+                field_config = scroll_config_raw.get(field, {})
+                self.scroll_config[field] = {
+                    'enabled': field_config.get('enabled', True),
+                    'speed': field_config.get('speed', 5),
+                    'separator': field_config.get('separator', '   '),
+                    'initial_pause_frames': field_config.get('initial_pause_frames', 0),
+                    'end_pause_frames': field_config.get('end_pause_frames', 0)
+                }
+                self.logger.debug(f"Scroll config for {field}: {self.scroll_config[field]}")
 
         except Exception as e:
             self.logger.error(f"Error loading music config: {e}. Music plugin disabled.")
@@ -827,6 +858,16 @@ class MusicPlugin(BasePlugin):
             self.scroll_position_title = 0
             self.scroll_position_artist = 0
             self.scroll_position_album = 0
+            # Reset pause counters
+            self.title_initial_pause_counter = 0
+            self.title_end_pause_counter = 0
+            self.title_at_end = False
+            self.artist_initial_pause_counter = 0
+            self.artist_end_pause_counter = 0
+            self.artist_at_end = False
+            self.album_initial_pause_counter = 0
+            self.album_end_pause_counter = 0
+            self.album_at_end = False
 
         if not self.is_music_display_active and not perform_full_refresh_this_cycle: 
             self.logger.warning("MusicPlugin.display called when music display not active and not a full refresh. Aborting draw.")
@@ -927,46 +968,116 @@ class MusicPlugin(BasePlugin):
         
         # Debug logging for scaling calculations
         self.logger.debug(f"MusicPlugin.display: Display scaling - matrix: {matrix_width}x{matrix_height}, album_art: {album_art_size}px, LINE_HEIGHT_BDF: {LINE_HEIGHT_BDF}, positions - title: {y_pos_title_top}, artist: {y_pos_artist_top}, album: {y_pos_album_top}")
-        
-        TEXT_SCROLL_DIVISOR = 5
 
-        # Title
+        # Title scrolling with configurable settings
+        title_config = self.scroll_config['title']
         title_width = self.display_manager.get_text_width(title, font_title)
         current_title_display_text = title
-        if title_width > text_area_width:
-            if self.scroll_position_title >= len(title):
-                self.scroll_position_title = 0
-            current_title_display_text = title[self.scroll_position_title:] + "   " + title[:self.scroll_position_title]
+        
+        if title_width > text_area_width and title_config['enabled']:
+            # Check if we're in initial pause
+            if self.title_initial_pause_counter < title_config['initial_pause_frames']:
+                self.title_initial_pause_counter += 1
+                current_title_display_text = title  # Show full text during initial pause
+            else:
+                # Check if we're at the end and need to pause
+                max_scroll_pos = len(title) - 1
+                if self.scroll_position_title >= max_scroll_pos:
+                    if not self.title_at_end:
+                        self.title_at_end = True
+                        self.title_end_pause_counter = 0
+                    
+                    if self.title_end_pause_counter < title_config['end_pause_frames']:
+                        self.title_end_pause_counter += 1
+                        # Show end of text during end pause
+                        current_title_display_text = title[self.scroll_position_title:] + title_config['separator'] + title[:self.scroll_position_title]
+                    else:
+                        # Reset and wrap around
+                        self.scroll_position_title = 0
+                        self.title_initial_pause_counter = 0
+                        self.title_end_pause_counter = 0
+                        self.title_at_end = False
+                        current_title_display_text = title + title_config['separator'] + title[:self.scroll_position_title]
+                else:
+                    self.title_at_end = False
+                    current_title_display_text = title[self.scroll_position_title:] + title_config['separator'] + title[:self.scroll_position_title]
+                
+                # Advance scroll position based on speed
+                self.title_scroll_tick += 1
+                if self.title_scroll_tick >= title_config['speed']:
+                    if not self.title_at_end or self.title_end_pause_counter >= title_config['end_pause_frames']:
+                        self.scroll_position_title = (self.scroll_position_title + 1) % len(title)
+                    self.title_scroll_tick = 0
+        elif title_width > text_area_width and not title_config['enabled']:
+            # Scrolling disabled - truncate text
+            current_title_display_text = title[:text_area_width // 6] + "..."  # Rough truncation
+            self.scroll_position_title = 0
+            self.title_scroll_tick = 0
+        else:
+            # Text fits, no scrolling needed
+            self.scroll_position_title = 0
+            self.title_scroll_tick = 0
+            self.title_initial_pause_counter = 0
+            self.title_end_pause_counter = 0
+            self.title_at_end = False
         
         self.display_manager.draw_text(current_title_display_text, 
                                      x=text_area_x_start, y=y_pos_title_top, color=(255, 255, 255), font=font_title)
-        if title_width > text_area_width:
-            self.title_scroll_tick += 1
-            if self.title_scroll_tick % TEXT_SCROLL_DIVISOR == 0:
-                self.scroll_position_title = (self.scroll_position_title + 1) % len(title)
-                self.title_scroll_tick = 0 
-        else:
-            self.scroll_position_title = 0
-            self.title_scroll_tick = 0
 
-        # Artist
+        # Artist scrolling with configurable settings
+        artist_config = self.scroll_config['artist']
         artist_width = self.display_manager.get_text_width(artist, font_artist_album)
         current_artist_display_text = artist
-        if artist_width > text_area_width:
-            if self.scroll_position_artist >= len(artist):
-                self.scroll_position_artist = 0
-            current_artist_display_text = artist[self.scroll_position_artist:] + "   " + artist[:self.scroll_position_artist]
+        
+        if artist_width > text_area_width and artist_config['enabled']:
+            # Check if we're in initial pause
+            if self.artist_initial_pause_counter < artist_config['initial_pause_frames']:
+                self.artist_initial_pause_counter += 1
+                current_artist_display_text = artist  # Show full text during initial pause
+            else:
+                # Check if we're at the end and need to pause
+                max_scroll_pos = len(artist) - 1
+                if self.scroll_position_artist >= max_scroll_pos:
+                    if not self.artist_at_end:
+                        self.artist_at_end = True
+                        self.artist_end_pause_counter = 0
+                    
+                    if self.artist_end_pause_counter < artist_config['end_pause_frames']:
+                        self.artist_end_pause_counter += 1
+                        # Show end of text during end pause
+                        current_artist_display_text = artist[self.scroll_position_artist:] + artist_config['separator'] + artist[:self.scroll_position_artist]
+                    else:
+                        # Reset and wrap around
+                        self.scroll_position_artist = 0
+                        self.artist_initial_pause_counter = 0
+                        self.artist_end_pause_counter = 0
+                        self.artist_at_end = False
+                        current_artist_display_text = artist + artist_config['separator'] + artist[:self.scroll_position_artist]
+                else:
+                    self.artist_at_end = False
+                    current_artist_display_text = artist[self.scroll_position_artist:] + artist_config['separator'] + artist[:self.scroll_position_artist]
+                
+                # Advance scroll position based on speed
+                self.artist_scroll_tick += 1
+                if self.artist_scroll_tick >= artist_config['speed']:
+                    if not self.artist_at_end or self.artist_end_pause_counter >= artist_config['end_pause_frames']:
+                        self.scroll_position_artist = (self.scroll_position_artist + 1) % len(artist)
+                    self.artist_scroll_tick = 0
+        elif artist_width > text_area_width and not artist_config['enabled']:
+            # Scrolling disabled - truncate text
+            current_artist_display_text = artist[:text_area_width // 5] + "..."  # Rough truncation
+            self.scroll_position_artist = 0
+            self.artist_scroll_tick = 0
+        else:
+            # Text fits, no scrolling needed
+            self.scroll_position_artist = 0
+            self.artist_scroll_tick = 0
+            self.artist_initial_pause_counter = 0
+            self.artist_end_pause_counter = 0
+            self.artist_at_end = False
 
         self.display_manager.draw_text(current_artist_display_text, 
                                       x=text_area_x_start, y=y_pos_artist_top, color=(180, 180, 180), font=font_artist_album)
-        if artist_width > text_area_width:
-            self.artist_scroll_tick += 1
-            if self.artist_scroll_tick % TEXT_SCROLL_DIVISOR == 0:
-                self.scroll_position_artist = (self.scroll_position_artist + 1) % len(artist)
-                self.artist_scroll_tick = 0
-        else:
-            self.scroll_position_artist = 0
-            self.artist_scroll_tick = 0
             
         # Album
         available_height_for_album = matrix_height - y_pos_album_top
@@ -977,6 +1088,7 @@ class MusicPlugin(BasePlugin):
             self.logger.debug(f"MusicPlugin.display: Album '{album}' - width: {album_width}, text_area_width: {text_area_width}")
             
             # Display album if it fits or can be scrolled (maintains original behavior but adds scrolling)
+            album_config = self.scroll_config['album']
             if album_width <= text_area_width:
                 # Album fits without scrolling - display normally
                 self.logger.debug(f"MusicPlugin.display: Drawing album '{album}' at ({text_area_x_start}, {y_pos_album_top}) - fits without scrolling")
@@ -984,20 +1096,56 @@ class MusicPlugin(BasePlugin):
                                              x=text_area_x_start, y=y_pos_album_top, color=(150, 150, 150), font=font_artist_album)
                 self.scroll_position_album = 0
                 self.album_scroll_tick = 0
+                self.album_initial_pause_counter = 0
+                self.album_end_pause_counter = 0
+                self.album_at_end = False
             elif album_width > text_area_width:
-                # Album is too wide - scroll it
+                # Album is too wide - scroll it (if enabled)
                 current_album_display_text = album
-                if self.scroll_position_album >= len(album):
+                
+                if album_config['enabled']:
+                    # Check if we're in initial pause
+                    if self.album_initial_pause_counter < album_config['initial_pause_frames']:
+                        self.album_initial_pause_counter += 1
+                        current_album_display_text = album  # Show full text during initial pause
+                    else:
+                        # Check if we're at the end and need to pause
+                        max_scroll_pos = len(album) - 1
+                        if self.scroll_position_album >= max_scroll_pos:
+                            if not self.album_at_end:
+                                self.album_at_end = True
+                                self.album_end_pause_counter = 0
+                            
+                            if self.album_end_pause_counter < album_config['end_pause_frames']:
+                                self.album_end_pause_counter += 1
+                                # Show end of text during end pause
+                                current_album_display_text = album[self.scroll_position_album:] + album_config['separator'] + album[:self.scroll_position_album]
+                            else:
+                                # Reset and wrap around
+                                self.scroll_position_album = 0
+                                self.album_initial_pause_counter = 0
+                                self.album_end_pause_counter = 0
+                                self.album_at_end = False
+                                current_album_display_text = album + album_config['separator'] + album[:self.scroll_position_album]
+                        else:
+                            self.album_at_end = False
+                            current_album_display_text = album[self.scroll_position_album:] + album_config['separator'] + album[:self.scroll_position_album]
+                        
+                        # Advance scroll position based on speed
+                        self.album_scroll_tick += 1
+                        if self.album_scroll_tick >= album_config['speed']:
+                            if not self.album_at_end or self.album_end_pause_counter >= album_config['end_pause_frames']:
+                                self.scroll_position_album = (self.scroll_position_album + 1) % len(album)
+                            self.album_scroll_tick = 0
+                else:
+                    # Scrolling disabled - truncate text
+                    current_album_display_text = album[:text_area_width // 5] + "..."  # Rough truncation
                     self.scroll_position_album = 0
-                current_album_display_text = album[self.scroll_position_album:] + "   " + album[:self.scroll_position_album]
+                    self.album_scroll_tick = 0
                 
                 self.logger.debug(f"MusicPlugin.display: Drawing scrolling album '{current_album_display_text}' at ({text_area_x_start}, {y_pos_album_top}) - position: {self.scroll_position_album}")
                 self.display_manager.draw_text(current_album_display_text, 
                                              x=text_area_x_start, y=y_pos_album_top, color=(150, 150, 150), font=font_artist_album)
-                self.album_scroll_tick += 1
-                if self.album_scroll_tick % TEXT_SCROLL_DIVISOR == 0:
-                    self.scroll_position_album = (self.scroll_position_album + 1) % len(album)
-                    self.album_scroll_tick = 0
         else:
             self.logger.debug(f"MusicPlugin.display: Album '{album}' not displayed - insufficient height (available: {available_height_for_album}, needed: {LINE_HEIGHT_BDF})")
 

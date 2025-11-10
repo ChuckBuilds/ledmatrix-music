@@ -53,6 +53,130 @@
       "description": "How long (in seconds) to show music when it starts playing in priority mode",
       "minimum": 10,
       "default": 30
+    },
+    "text_scrolling": {
+      "type": "object",
+      "description": "Fine-grained control over text scrolling behavior",
+      "properties": {
+        "title": {
+          "type": "object",
+          "description": "Title scrolling settings",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Enable scrolling for track title",
+              "default": true
+            },
+            "speed": {
+              "type": "integer",
+              "description": "Scroll speed divisor (higher = slower, lower = faster). Controls how many frames between each character scroll. Range: 1-20",
+              "minimum": 1,
+              "maximum": 20,
+              "default": 5
+            },
+            "separator": {
+              "type": "string",
+              "description": "Text separator between wrapped text (e.g., '   ' for 3 spaces, ' | ' for pipe)",
+              "default": "   ",
+              "maxLength": 10
+            },
+            "initial_pause_frames": {
+              "type": "integer",
+              "description": "Number of frames to pause before starting scroll (0 = no pause)",
+              "minimum": 0,
+              "maximum": 300,
+              "default": 0
+            },
+            "end_pause_frames": {
+              "type": "integer",
+              "description": "Number of frames to pause at end before wrapping (0 = no pause)",
+              "minimum": 0,
+              "maximum": 300,
+              "default": 0
+            }
+          },
+          "default": {}
+        },
+        "artist": {
+          "type": "object",
+          "description": "Artist scrolling settings",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Enable scrolling for artist name",
+              "default": true
+            },
+            "speed": {
+              "type": "integer",
+              "description": "Scroll speed divisor (higher = slower, lower = faster). Controls how many frames between each character scroll. Range: 1-20",
+              "minimum": 1,
+              "maximum": 20,
+              "default": 5
+            },
+            "separator": {
+              "type": "string",
+              "description": "Text separator between wrapped text (e.g., '   ' for 3 spaces, ' | ' for pipe)",
+              "default": "   ",
+              "maxLength": 10
+            },
+            "initial_pause_frames": {
+              "type": "integer",
+              "description": "Number of frames to pause before starting scroll (0 = no pause)",
+              "minimum": 0,
+              "maximum": 300,
+              "default": 0
+            },
+            "end_pause_frames": {
+              "type": "integer",
+              "description": "Number of frames to pause at end before wrapping (0 = no pause)",
+              "minimum": 0,
+              "maximum": 300,
+              "default": 0
+            }
+          },
+          "default": {}
+        },
+        "album": {
+          "type": "object",
+          "description": "Album scrolling settings",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Enable scrolling for album name",
+              "default": true
+            },
+            "speed": {
+              "type": "integer",
+              "description": "Scroll speed divisor (higher = slower, lower = faster). Controls how many frames between each character scroll. Range: 1-20",
+              "minimum": 1,
+              "maximum": 20,
+              "default": 5
+            },
+            "separator": {
+              "type": "string",
+              "description": "Text separator between wrapped text (e.g., '   ' for 3 spaces, ' | ' for pipe)",
+              "default": "   ",
+              "maxLength": 10
+            },
+            "initial_pause_frames": {
+              "type": "integer",
+              "description": "Number of frames to pause before starting scroll (0 = no pause)",
+              "minimum": 0,
+              "maximum": 300,
+              "default": 0
+            },
+            "end_pause_frames": {
+              "type": "integer",
+              "description": "Number of frames to pause at end before wrapping (0 = no pause)",
+              "minimum": 0,
+              "maximum": 300,
+              "default": 0
+            }
+          },
+          "default": {}
+        }
+      },
+      "default": {}
     }
   },
   "required": ["enabled", "preferred_source"],
