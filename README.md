@@ -2,6 +2,12 @@
 
 A plugin for LEDMatrix that displays real-time now playing information from Spotify and YouTube Music with album art, scrolling text, and progress bars.
 
+Screenshot
+
+<img width="768" height="192" alt="led_matrix_1765923481911" src="https://github.com/user-attachments/assets/3317fd98-d73b-4ec0-8570-a2f38794c7cb" />
+
+
+
 ## Features
 
 - **Dual Music Sources**: Support for both Spotify and YouTube Music
