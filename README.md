@@ -26,20 +26,8 @@ Screenshot
 ## Configuration
 
 ### Plugin Settings
+Use Web Ui to configure
 
-Add to your `config/config.json`:
-
-```json
-{
-  "ledmatrix-music": {
-    "enabled": true,
-    "display_duration": 30,
-    "preferred_source": "spotify",
-    "polling_interval_seconds": 2,
-    "ytm_companion_url": "http://localhost:9863"
-  }
-}
-```
 
 ### Configuration Options
 
@@ -119,16 +107,6 @@ The music display shows:
 - **Progress Bar**: White progress bar at the bottom
 - **Nothing Playing**: Centered message when no music is detected
 
-### Layout Structure
-
-```
-┌─────────────────────────────────┐
-│ [Album Art] Track Title         │
-│           Artist Name           │
-│           Album Name            │
-│           ████████░░░░          │
-└─────────────────────────────────┘
-```
 
 ## Music Sources
 
