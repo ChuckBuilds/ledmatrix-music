@@ -402,10 +402,24 @@ class MusicPlugin(BasePlugin):
         """Check if music priority mode should timeout."""
         if self.music_priority_active:
             current_time = time.time()
-            if current_time - self.music_priority_start_time > self.priority_duration_seconds:
+            time_since_activation = current_time - self.music_priority_start_time
+
+            # Only timeout if music has stopped playing, not just after a fixed duration
+            # Check if we have current track info and if music is still playing
+            is_music_still_playing = (
+                self.current_track_info and
+                self.current_track_info.get('is_playing', False) and
+                self.current_track_info.get('title') != 'Nothing Playing'
+            )
+
+            if time_since_activation > self.priority_duration_seconds and not is_music_still_playing:
                 self.logger.info("🎵 Music priority mode timeout - returning to normal display rotation")
                 self._deactivate_music_priority()
                 return True
+            elif is_music_still_playing:
+                # Reset the timer while music is still playing
+                self.music_priority_start_time = current_time
+                self.logger.debug("🎵 Music still playing - resetting priority mode timer")
         return False
 
     def _handle_ytm_direct_update(self, ytm_data):
@@ -1178,6 +1192,31 @@ class MusicPlugin(BasePlugin):
                 ], fill=(200, 200, 200)) 
 
         self.display_manager.update_display()
+
+    def has_live_content(self) -> bool:
+        """
+        Check if this plugin currently has live content to display.
+
+        Music is considered "live" when it's actively playing and should interrupt
+        normal display rotation when live priority is enabled.
+
+        Returns:
+            True if music is currently playing, False otherwise
+        """
+        # Music is considered "live" when it's actively playing
+        # Check if we have current track info and if music is playing
+        has_content = self.current_track_info and self.current_track_info.get('is_playing', False)
+        self.logger.debug(f"has_live_content() called - returning {has_content}, track: {self.current_track_info.get('title', 'None') if self.current_track_info else 'None'}")
+        return has_content
+
+    def get_live_modes(self) -> list:
+        """
+        Return the list of modes that should be displayed when live content is available.
+
+        Returns:
+            List of mode names (typically ["now_playing"])
+        """
+        return ["now_playing"]
 
     def cleanup(self) -> None:
         """Clean up resources when plugin is unloaded."""
