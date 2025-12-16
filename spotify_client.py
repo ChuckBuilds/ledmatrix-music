@@ -45,10 +45,27 @@ class SpotifyClient:
         try:
             with open(SECRETS_PATH, 'r') as f:
                 secrets = json.load(f)
-                music_secrets = secrets.get("music", {})
-                self.client_id = music_secrets.get("SPOTIFY_CLIENT_ID")
-                self.client_secret = music_secrets.get("SPOTIFY_CLIENT_SECRET")
-                self.redirect_uri = music_secrets.get("SPOTIFY_REDIRECT_URI")
+                
+                # Try new location first: ledmatrix-music plugin section with new field names
+                plugin_secrets = secrets.get("ledmatrix-music", {})
+                self.client_id = plugin_secrets.get("spotify_client_id")
+                self.client_secret = plugin_secrets.get("spotify_client_secret")
+                self.redirect_uri = plugin_secrets.get("spotify_redirect_uri")
+                
+                # Fall back to old location: music section with old field names (backward compatibility)
+                if not all([self.client_id, self.client_secret]):
+                    music_secrets = secrets.get("music", {})
+                    if not self.client_id:
+                        self.client_id = music_secrets.get("SPOTIFY_CLIENT_ID")
+                    if not self.client_secret:
+                        self.client_secret = music_secrets.get("SPOTIFY_CLIENT_SECRET")
+                    if not self.redirect_uri:
+                        self.redirect_uri = music_secrets.get("SPOTIFY_REDIRECT_URI")
+                
+                # Default redirect URI if not found anywhere
+                if not self.redirect_uri:
+                    self.redirect_uri = "http://127.0.0.1:8888/callback"
+                
                 if not all([self.client_id, self.client_secret, self.redirect_uri]):
                     logging.warning("One or more Spotify credentials missing in config_secrets.json. Spotify will be unavailable.")
         except json.JSONDecodeError:

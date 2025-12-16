@@ -32,12 +32,29 @@ def load_spotify_credentials():
     try:
         with open(SECRETS_PATH, 'r', encoding='utf-8') as f:
             secrets = json.load(f)
-            music_secrets = secrets.get("music", {})
-            cred_client_id = music_secrets.get("SPOTIFY_CLIENT_ID")
-            cred_client_secret = music_secrets.get("SPOTIFY_CLIENT_SECRET")
-            cred_redirect_uri = music_secrets.get("SPOTIFY_REDIRECT_URI")
+            
+            # Try new location first: ledmatrix-music plugin section with new field names
+            plugin_secrets = secrets.get("ledmatrix-music", {})
+            cred_client_id = plugin_secrets.get("spotify_client_id")
+            cred_client_secret = plugin_secrets.get("spotify_client_secret")
+            cred_redirect_uri = plugin_secrets.get("spotify_redirect_uri")
+            
+            # Fall back to old location: music section with old field names (backward compatibility)
+            if not all([cred_client_id, cred_client_secret]):
+                music_secrets = secrets.get("music", {})
+                if not cred_client_id:
+                    cred_client_id = music_secrets.get("SPOTIFY_CLIENT_ID")
+                if not cred_client_secret:
+                    cred_client_secret = music_secrets.get("SPOTIFY_CLIENT_SECRET")
+                if not cred_redirect_uri:
+                    cred_redirect_uri = music_secrets.get("SPOTIFY_REDIRECT_URI")
+            
+            # Default redirect URI if not found anywhere
+            if not cred_redirect_uri:
+                cred_redirect_uri = "http://127.0.0.1:8888/callback"
+            
             if not all([cred_client_id, cred_client_secret, cred_redirect_uri]):
-                logging.error("One or more Spotify credentials missing in config_secrets.json under the 'music' key.")
+                logging.error("One or more Spotify credentials missing in config_secrets.json. Check 'ledmatrix-music' or 'music' section.")
                 return None, None, None
             return cred_client_id, cred_client_secret, cred_redirect_uri
     except json.JSONDecodeError:

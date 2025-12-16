@@ -37,6 +37,16 @@
       "default": "http://localhost:9863",
       "pattern": "^https?://.*"
     },
+    "spotify_client_id": {
+      "type": "string",
+      "description": "Spotify API Client ID",
+      "x-secret": true
+    },
+    "spotify_client_secret": {
+      "type": "string",
+      "description": "Spotify API Client Secret",
+      "x-secret": true
+    },
     "music_priority_mode": {
       "type": "boolean",
       "description": "Enable music priority mode - when music is playing, it takes over the display",
