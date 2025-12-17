@@ -11,10 +11,11 @@ import threading
 from enum import Enum, auto
 import logging
 import json
+import os
 from io import BytesIO
 import requests
 from typing import Union, Dict, Any
-from PIL import Image, ImageEnhance
+from PIL import Image, ImageEnhance, ImageFont
 import queue
 
 # Import client modules
@@ -121,6 +122,9 @@ class MusicPlugin(BasePlugin):
         self._load_config()
         self._initialize_clients()
         
+        # Load custom fonts from config
+        self._load_custom_fonts()
+        
         self.logger.info(f"Music plugin initialized - Source: {self.preferred_source}, Enabled: {self.enabled}, Priority Mode: {self.music_priority_mode}")
 
     def _load_config(self):
@@ -166,6 +170,89 @@ class MusicPlugin(BasePlugin):
         except Exception as e:
             self.logger.error(f"Error loading music config: {e}. Music plugin disabled.")
             self.enabled = False
+    
+    def _load_custom_font_from_element_config(self, element_config: Dict[str, Any], default_size: int = 8) -> ImageFont.FreeTypeFont:
+        """
+        Load a custom font from an element configuration dictionary.
+        
+        Args:
+            element_config: Configuration dict for a single element containing 'font' and 'font_size' keys
+            default_size: Default font size if not specified in config
+            
+        Returns:
+            PIL ImageFont object
+        """
+        # Get font name and size, with defaults
+        font_name = element_config.get('font', 'PressStart2P-Regular.ttf')
+        font_size = int(element_config.get('font_size', default_size))  # Ensure integer for PIL
+        
+        # Build font path
+        font_path = os.path.join('assets', 'fonts', font_name)
+        
+        # Try to load the font
+        try:
+            if os.path.exists(font_path):
+                # Try loading as TTF first (works for both TTF and some BDF files with PIL)
+                if font_path.lower().endswith('.ttf'):
+                    font = ImageFont.truetype(font_path, font_size)
+                    self.logger.debug(f"Loaded font: {font_name} at size {font_size}")
+                    return font
+                elif font_path.lower().endswith('.bdf'):
+                    # PIL's ImageFont.truetype() can sometimes handle BDF files
+                    # If it fails, we'll fall through to the default font
+                    try:
+                        font = ImageFont.truetype(font_path, font_size)
+                        self.logger.debug(f"Loaded BDF font: {font_name} at size {font_size}")
+                        return font
+                    except Exception:
+                        self.logger.warning(f"Could not load BDF font {font_name} with PIL, using default")
+                        # Fall through to default
+                else:
+                    self.logger.warning(f"Unknown font file type: {font_name}, using default")
+            else:
+                self.logger.warning(f"Font file not found: {font_path}, using default")
+        except Exception as e:
+            self.logger.error(f"Error loading font {font_name}: {e}, using default")
+        
+        # Fall back to default font
+        default_font_path = os.path.join('assets', 'fonts', 'PressStart2P-Regular.ttf')
+        try:
+            if os.path.exists(default_font_path):
+                return ImageFont.truetype(default_font_path, font_size)
+            else:
+                self.logger.warning("Default font not found, using PIL default")
+                return ImageFont.load_default()
+        except Exception as e:
+            self.logger.error(f"Error loading default font: {e}")
+            return ImageFont.load_default()
+    
+    def _load_custom_fonts(self):
+        """Load custom fonts from config customization section."""
+        # Initialize font attributes with defaults (will be overridden if config exists)
+        self.title_font = None
+        self.artist_font = None
+        self.album_font = None
+        
+        # Get customization config, with backward compatibility
+        customization = self.config.get('customization', {})
+        
+        if not customization:
+            # No customization config, use display_manager fonts as fallback
+            self.logger.debug("No customization config found, using display_manager fonts")
+            return
+        
+        # Load fonts from config with defaults for backward compatibility
+        title_config = customization.get('title_text', {})
+        artist_config = customization.get('artist_text', {})
+        album_config = customization.get('album_text', {})
+        
+        try:
+            self.title_font = self._load_custom_font_from_element_config(title_config, default_size=8)
+            self.artist_font = self._load_custom_font_from_element_config(artist_config, default_size=7)
+            self.album_font = self._load_custom_font_from_element_config(album_config, default_size=7)
+            self.logger.info("Successfully loaded custom fonts from config")
+        except Exception as e:
+            self.logger.error(f"Error loading custom fonts: {e}, using display_manager fonts")
 
     def _initialize_clients(self):
         """Initialize music clients based on configuration."""
@@ -951,8 +1038,10 @@ class MusicPlugin(BasePlugin):
         # Debug logging for album display
         self.logger.debug(f"MusicPlugin.display: Track info - Title: '{title}', Artist: '{artist}', Album: '{album}'") 
 
-        font_title = self.display_manager.small_font
-        font_artist_album = self.display_manager.bdf_5x7_font
+        # Use custom fonts if loaded, otherwise fall back to display_manager fonts
+        font_title = self.title_font if self.title_font else self.display_manager.small_font
+        font_artist = self.artist_font if self.artist_font else self.display_manager.bdf_5x7_font
+        font_album = self.album_font if self.album_font else self.display_manager.bdf_5x7_font
 
         # Calculate y positions as percentages of display height for scaling
         matrix_height = self.display_manager.matrix.height
@@ -1040,7 +1129,7 @@ class MusicPlugin(BasePlugin):
 
         # Artist scrolling with configurable settings
         artist_config = self.scroll_config['artist']
-        artist_width = self.display_manager.get_text_width(artist, font_artist_album)
+        artist_width = self.display_manager.get_text_width(artist, font_artist)
         current_artist_display_text = artist
         
         if artist_width > text_area_width and artist_config['enabled']:
@@ -1091,14 +1180,14 @@ class MusicPlugin(BasePlugin):
             self.artist_at_end = False
 
         self.display_manager.draw_text(current_artist_display_text, 
-                                      x=text_area_x_start, y=y_pos_artist_top, color=(180, 180, 180), font=font_artist_album)
+                                     x=text_area_x_start, y=y_pos_artist_top, color=(180, 180, 180), font=font_artist)
             
         # Album
         available_height_for_album = matrix_height - y_pos_album_top
         self.logger.debug(f"MusicPlugin.display: Album display check - matrix_height: {matrix_height}, y_pos_album_top: {y_pos_album_top}, available_height: {available_height_for_album}, LINE_HEIGHT_BDF: {LINE_HEIGHT_BDF}")
         
         if available_height_for_album >= LINE_HEIGHT_BDF: 
-            album_width = self.display_manager.get_text_width(album, font_artist_album)
+            album_width = self.display_manager.get_text_width(album, font_album)
             self.logger.debug(f"MusicPlugin.display: Album '{album}' - width: {album_width}, text_area_width: {text_area_width}")
             
             # Display album if it fits or can be scrolled (maintains original behavior but adds scrolling)
@@ -1107,7 +1196,7 @@ class MusicPlugin(BasePlugin):
                 # Album fits without scrolling - display normally
                 self.logger.debug(f"MusicPlugin.display: Drawing album '{album}' at ({text_area_x_start}, {y_pos_album_top}) - fits without scrolling")
                 self.display_manager.draw_text(album, 
-                                             x=text_area_x_start, y=y_pos_album_top, color=(150, 150, 150), font=font_artist_album)
+                                             x=text_area_x_start, y=y_pos_album_top, color=(150, 150, 150), font=font_album)
                 self.scroll_position_album = 0
                 self.album_scroll_tick = 0
                 self.album_initial_pause_counter = 0
@@ -1159,7 +1248,7 @@ class MusicPlugin(BasePlugin):
                 
                 self.logger.debug(f"MusicPlugin.display: Drawing scrolling album '{current_album_display_text}' at ({text_area_x_start}, {y_pos_album_top}) - position: {self.scroll_position_album}")
                 self.display_manager.draw_text(current_album_display_text, 
-                                             x=text_area_x_start, y=y_pos_album_top, color=(150, 150, 150), font=font_artist_album)
+                                             x=text_area_x_start, y=y_pos_album_top, color=(150, 150, 150), font=font_album)
         else:
             self.logger.debug(f"MusicPlugin.display: Album '{album}' not displayed - insufficient height (available: {available_height_for_album}, needed: {LINE_HEIGHT_BDF})")
 

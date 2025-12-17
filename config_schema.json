@@ -187,6 +187,108 @@
         }
       },
       "default": {}
+    },
+    "customization": {
+      "type": "object",
+      "title": "Display Customization",
+      "description": "Customize fonts for music display text elements",
+      "properties": {
+        "title_text": {
+          "type": "object",
+          "title": "Track Title",
+          "description": "Font settings for the track title",
+          "properties": {
+            "font": {
+              "type": "string",
+              "title": "Font Family",
+              "description": "Select the font to use",
+              "enum": [
+                "PressStart2P-Regular.ttf",
+                "4x6-font.ttf",
+                "5by7.regular.ttf",
+                "5x7.bdf",
+                "4x6.bdf",
+                "cozette.bdf"
+              ],
+              "default": "PressStart2P-Regular.ttf"
+            },
+            "font_size": {
+              "type": "integer",
+              "title": "Font Size",
+              "description": "Font size in pixels",
+              "minimum": 4,
+              "maximum": 16,
+              "default": 8
+            }
+          },
+          "x-propertyOrder": ["font", "font_size"],
+          "additionalProperties": false
+        },
+        "artist_text": {
+          "type": "object",
+          "title": "Artist Name",
+          "description": "Font settings for the artist name",
+          "properties": {
+            "font": {
+              "type": "string",
+              "title": "Font Family",
+              "description": "Select the font to use",
+              "enum": [
+                "PressStart2P-Regular.ttf",
+                "4x6-font.ttf",
+                "5by7.regular.ttf",
+                "5x7.bdf",
+                "4x6.bdf",
+                "cozette.bdf"
+              ],
+              "default": "5x7.bdf"
+            },
+            "font_size": {
+              "type": "integer",
+              "title": "Font Size",
+              "description": "Font size in pixels",
+              "minimum": 4,
+              "maximum": 16,
+              "default": 7
+            }
+          },
+          "x-propertyOrder": ["font", "font_size"],
+          "additionalProperties": false
+        },
+        "album_text": {
+          "type": "object",
+          "title": "Album Name",
+          "description": "Font settings for the album name",
+          "properties": {
+            "font": {
+              "type": "string",
+              "title": "Font Family",
+              "description": "Select the font to use",
+              "enum": [
+                "PressStart2P-Regular.ttf",
+                "4x6-font.ttf",
+                "5by7.regular.ttf",
+                "5x7.bdf",
+                "4x6.bdf",
+                "cozette.bdf"
+              ],
+              "default": "5x7.bdf"
+            },
+            "font_size": {
+              "type": "integer",
+              "title": "Font Size",
+              "description": "Font size in pixels",
+              "minimum": 4,
+              "maximum": 16,
+              "default": 7
+            }
+          },
+          "x-propertyOrder": ["font", "font_size"],
+          "additionalProperties": false
+        }
+      },
+      "x-propertyOrder": ["title_text", "artist_text", "album_text"],
+      "additionalProperties": false
     }
   },
   "required": ["enabled", "preferred_source"],
